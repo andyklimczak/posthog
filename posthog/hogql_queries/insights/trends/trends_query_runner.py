@@ -1,3 +1,4 @@
+import re
 import threading
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -82,6 +83,8 @@ from products.event_definitions.backend.models.property_definition import Proper
 
 
 class TrendsQueryRunner(AnalyticsQueryRunner[TrendsQueryResponse]):
+    _RELATIVE_TIME_RANGE_RE = re.compile(r"^-\d+(s|m|h)$")
+
     query: TrendsQuery
     cached_response: CachedTrendsQueryResponse
     series: list[SeriesWithExtras]
@@ -731,7 +734,16 @@ class TrendsQueryRunner(AnalyticsQueryRunner[TrendsQueryResponse]):
 
     @property
     def exact_timerange(self):
-        return self.query.dateRange and self.query.dateRange.explicitDate
+        if self.query.dateRange and self.query.dateRange.explicitDate:
+            return True
+
+        if self._trends_display.display_type != ChartDisplayType.CHANGE_CHART or self.query.dateRange is None:
+            return False
+
+        return any(
+            isinstance(value, str) and self._RELATIVE_TIME_RANGE_RE.fullmatch(value)
+            for value in (self.query.dateRange.date_from, self.query.dateRange.date_to)
+        )
 
     @cached_property
     def query_date_range(self):

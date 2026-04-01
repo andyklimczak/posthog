@@ -144,6 +144,14 @@ class TestValidateAlertConfig:
                 "not compatible with non time series",
             ),
             (
+                "relative_on_change_chart",
+                _base_query(display="ChangeChart"),
+                _base_condition("relative_increase"),
+                _base_config(),
+                None,
+                "not compatible with non time series",
+            ),
+            (
                 "absolute_with_percentage_threshold",
                 _base_query(),
                 _base_condition("absolute_value"),

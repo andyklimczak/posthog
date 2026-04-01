@@ -2662,6 +2662,7 @@ export enum ChartDisplayType {
     BoldNumber = 'BoldNumber',
     ActionsPie = 'ActionsPie',
     ActionsBarValue = 'ActionsBarValue',
+    ChangeChart = 'ChangeChart',
     ActionsTable = 'ActionsTable',
     WorldMap = 'WorldMap',
     CalendarHeatmap = 'CalendarHeatmap',

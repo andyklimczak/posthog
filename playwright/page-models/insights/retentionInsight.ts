@@ -1,7 +1,6 @@
 import { Locator, Page, expect } from '@playwright/test'
 
 import { TaxonomicFilter } from '../taxonomicFilter'
-
 import { ChartInsightBase } from './chartInsightBase'
 
 export class RetentionInsight extends ChartInsightBase {

@@ -1,3 +1,4 @@
+import re
 import typing
 from datetime import datetime
 from functools import cached_property
@@ -9,6 +10,7 @@ from dateutil.relativedelta import relativedelta
 from posthog.schema import (
     ActionsNode,
     BaseMathType,
+    ChartDisplayType,
     Compare,
     CompareFilter,
     DataWarehouseNode,
@@ -39,6 +41,8 @@ from posthog.models import Action, Team
 
 
 class TrendsActorsQueryBuilder:
+    _RELATIVE_TIME_RANGE_RE = re.compile(r"^-\d+(s|m|h)$")
+
     trends_query: TrendsQuery
     team: Team
     timings: HogQLTimings
@@ -94,7 +98,16 @@ class TrendsActorsQueryBuilder:
 
     @property
     def exact_timerange(self):
-        return self.trends_query.dateRange and self.trends_query.dateRange.explicitDate
+        if self.trends_query.dateRange and self.trends_query.dateRange.explicitDate:
+            return True
+
+        if self.trends_display.display_type != ChartDisplayType.CHANGE_CHART or self.trends_query.dateRange is None:
+            return False
+
+        return any(
+            isinstance(value, str) and self._RELATIVE_TIME_RANGE_RE.fullmatch(value)
+            for value in (self.trends_query.dateRange.date_from, self.trends_query.dateRange.date_to)
+        )
 
     @cached_property
     def trends_date_range(self) -> QueryDateRange:

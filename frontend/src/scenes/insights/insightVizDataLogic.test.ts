@@ -687,6 +687,83 @@ describe('insightVizDataLogic', () => {
                 validationError: "Exclusion steps cannot contain an event that's part of funnel steps.",
             })
         })
+
+        it('returns a validation error for invalid saved change chart queries', () => {
+            expectLogic(builtInsightVizDataLogic, () => {
+                builtInsightVizDataLogic.actions.updateQuerySource({
+                    kind: NodeKind.TrendsQuery,
+                    series: [
+                        {
+                            kind: NodeKind.EventsNode,
+                            event: '$pageview',
+                            name: '$pageview',
+                        },
+                    ],
+                    trendsFilter: {
+                        display: ChartDisplayType.ChangeChart,
+                    },
+                } as TrendsQuery)
+            }).toMatchValues({
+                validationError: 'Change chart requires exactly one breakdown.',
+            })
+        })
+
+        it('requires compare mode for saved change chart queries', () => {
+            expectLogic(builtInsightVizDataLogic, () => {
+                builtInsightVizDataLogic.actions.updateQuerySource({
+                    kind: NodeKind.TrendsQuery,
+                    series: [
+                        {
+                            kind: NodeKind.EventsNode,
+                            event: '$pageview',
+                            name: '$pageview',
+                        },
+                    ],
+                    dateRange: {
+                        date_from: '-7d',
+                    },
+                    breakdownFilter: {
+                        breakdown: '$browser',
+                    },
+                    compareFilter: {
+                        compare: false,
+                    },
+                    trendsFilter: {
+                        display: ChartDisplayType.ChangeChart,
+                    },
+                } as TrendsQuery)
+            }).toMatchValues({
+                validationError: 'Change chart requires comparison with the previous period.',
+            })
+        })
+    })
+
+    describe('supportsCompare', () => {
+        it('returns false for change chart displays', () => {
+            expectLogic(builtInsightVizDataLogic, () => {
+                builtInsightVizDataLogic.actions.updateQuerySource({
+                    kind: NodeKind.TrendsQuery,
+                    series: [
+                        {
+                            kind: NodeKind.EventsNode,
+                            event: '$pageview',
+                            name: '$pageview',
+                        },
+                    ],
+                    dateRange: {
+                        date_from: '-7d',
+                    },
+                    breakdownFilter: {
+                        breakdown: '$browser',
+                    },
+                    trendsFilter: {
+                        display: ChartDisplayType.ChangeChart,
+                    },
+                } as TrendsQuery)
+            }).toMatchValues({
+                supportsCompare: false,
+            })
+        })
     })
 
     describe('isSingleSeriesOutput', () => {

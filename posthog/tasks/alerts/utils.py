@@ -45,6 +45,7 @@ NON_TIME_SERIES_DISPLAY_TYPES = {
     ChartDisplayType.BOLD_NUMBER,
     ChartDisplayType.ACTIONS_PIE,
     ChartDisplayType.ACTIONS_BAR_VALUE,
+    ChartDisplayType.CHANGE_CHART,
     ChartDisplayType.ACTIONS_TABLE,
     ChartDisplayType.WORLD_MAP,
 }

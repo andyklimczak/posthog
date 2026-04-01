@@ -1,4 +1,5 @@
 import { useActions, useValues } from 'kea'
+import { useEffect, useRef } from 'react'
 
 import { IconGlobe, IconGraph, IconPieChart, IconRetentionHeatmap, IconTrends } from '@posthog/icons'
 import { LemonSelect, LemonSelectOptions } from '@posthog/lemon-ui'
@@ -8,7 +9,13 @@ import { Icon123, IconAreaChart, IconCumulativeChart, IconTableChart } from 'lib
 import { featureFlagLogic } from 'lib/logic/featureFlagLogic'
 import { insightLogic } from 'scenes/insights/insightLogic'
 import { insightVizDataLogic } from 'scenes/insights/insightVizDataLogic'
+import {
+    getChangeChartValidationError,
+    isChangeChartDisplay,
+    shouldForceExactDateRangeForChangeChart,
+} from 'scenes/insights/views/ChangeChart/utils'
 
+import { CompareFilter as CompareFilterType } from '~/queries/schema/schema-general'
 import { ChartDisplayType } from '~/types'
 
 function ChartFilterOptionLabel(props: { label: string; description?: string }): JSX.Element {
@@ -22,16 +29,41 @@ function ChartFilterOptionLabel(props: { label: string; description?: string }):
 
 export function ChartFilter(): JSX.Element {
     const { insightProps, editingDisabledReason } = useValues(insightLogic)
-    const { display } = useValues(insightVizDataLogic(insightProps))
-    const { updateInsightFilter } = useActions(insightVizDataLogic(insightProps))
+    const { display, isTrends, dateRange, series, hasFormula, breakdownFilter, compareFilter } = useValues(
+        insightVizDataLogic(insightProps)
+    )
+    const { updateDateRange, updateDisplay, updateCompareFilter } = useActions(insightVizDataLogic(insightProps))
     const { featureFlags } = useValues(featureFlagLogic)
-
-    const { isTrends, isSingleSeriesOutput, formula, breakdownFilter } = useValues(insightVizDataLogic(insightProps))
+    const { isSingleSeriesOutput, formula } = useValues(insightVizDataLogic(insightProps))
+    const previousCompareFilterRef = useRef<CompareFilterType | null>(null)
+    const previousExplicitDateRef = useRef<boolean>(dateRange?.explicitDate ?? false)
+    const isSwitchingToChangeChartRef = useRef(false)
 
     const trendsOnlyDisabledReason = !isTrends ? 'This type is only available in Trends.' : undefined
     const singleSeriesOnlyDisabledReason = !isSingleSeriesOutput
         ? 'This type currently only supports insights with one series, and this insight has multiple series.'
         : undefined
+    const changeChartDisabledReason = getChangeChartValidationError({
+        display: ChartDisplayType.ChangeChart,
+        isTrends,
+        dateRange,
+        series,
+        breakdownFilter,
+        compareFilter: { compare: true },
+        hasFormula,
+    })
+
+    useEffect(() => {
+        if (!isChangeChartDisplay(display)) {
+            if (isSwitchingToChangeChartRef.current) {
+                return
+            }
+            previousCompareFilterRef.current = compareFilter ?? null
+            previousExplicitDateRef.current = dateRange?.explicitDate ?? false
+        } else {
+            isSwitchingToChangeChartRef.current = false
+        }
+    }, [compareFilter, dateRange?.explicitDate, display])
 
     const options: LemonSelectOptions<ChartDisplayType> = [
         {
@@ -147,6 +179,18 @@ export function ChartFilter(): JSX.Element {
                     ),
                 },
                 {
+                    value: ChartDisplayType.ChangeChart,
+                    icon: <IconGraph className="rotate-90" />,
+                    label: 'Change chart',
+                    disabledReason: changeChartDisabledReason,
+                    labelInMenu: (
+                        <ChartFilterOptionLabel
+                            label="Change chart"
+                            description="Change versus the previous period for each breakdown value."
+                        />
+                    ),
+                },
+                {
                     value: ChartDisplayType.ActionsTable,
                     icon: <IconTableChart />,
                     label: 'Table',
@@ -199,7 +243,22 @@ export function ChartFilter(): JSX.Element {
             key="2"
             value={display || ChartDisplayType.ActionsLineGraph}
             onChange={(value) => {
-                updateInsightFilter({ display: value })
+                if (isChangeChartDisplay(value)) {
+                    isSwitchingToChangeChartRef.current = true
+                    previousCompareFilterRef.current = compareFilter ?? null
+                    previousExplicitDateRef.current = dateRange?.explicitDate ?? false
+                    updateCompareFilter({ compare: true, compare_to: undefined })
+                    if (shouldForceExactDateRangeForChangeChart(dateRange)) {
+                        updateDateRange({ ...dateRange, explicitDate: true }, true)
+                    }
+                } else if (isChangeChartDisplay(display)) {
+                    updateCompareFilter(previousCompareFilterRef.current ?? { compare: false, compare_to: undefined })
+                    if ((dateRange?.explicitDate ?? false) !== previousExplicitDateRef.current) {
+                        updateDateRange({ ...dateRange, explicitDate: previousExplicitDateRef.current }, true)
+                    }
+                }
+
+                updateDisplay(value)
             }}
             dropdownPlacement="bottom-end"
             optionTooltipPlacement="left"

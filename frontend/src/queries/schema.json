@@ -3012,6 +3012,10 @@
                     "type": "string"
                 },
                 {
+                    "const": "ChangeChart",
+                    "type": "string"
+                },
+                {
                     "const": "ActionsTable",
                     "type": "string"
                 },
@@ -3124,6 +3128,7 @@
                         "BoldNumber",
                         "ActionsPie",
                         "ActionsBarValue",
+                        "ChangeChart",
                         "ActionsTable",
                         "WorldMap",
                         "CalendarHeatmap",
@@ -9195,6 +9200,7 @@
                 "BoldNumber",
                 "ActionsPie",
                 "ActionsBarValue",
+                "ChangeChart",
                 "ActionsTable",
                 "WorldMap",
                 "CalendarHeatmap",

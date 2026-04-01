@@ -17,6 +17,7 @@ import { dataThemeLogic } from 'scenes/dataThemeLogic'
 import { getClampedFunnelStepRange } from 'scenes/funnels/funnelUtils'
 import { insightDataLogic } from 'scenes/insights/insightDataLogic'
 import { keyForInsightLogicProps } from 'scenes/insights/sharedUtils'
+import { getChangeChartValidationError, isChangeChartDisplay } from 'scenes/insights/views/ChangeChart/utils'
 import { AggregationType } from 'scenes/insights/views/InsightsTable/insightsTableDataLogic'
 import { sceneLogic } from 'scenes/sceneLogic'
 import { filterTestAccountsDefaultsLogic } from 'scenes/settings/environment/filterTestAccountDefaultsLogic'
@@ -210,6 +211,7 @@ export const insightVizDataLogic = kea<insightVizDataLogicType>([
             (s) => [s.querySource, s.display, s.dateRange],
             (q, display, dateRange) =>
                 (isTrendsQuery(q) || isStickinessQuery(q) || isWebAnalyticsInsightQuery(q)) &&
+                !isChangeChartDisplay(display) &&
                 display !== ChartDisplayType.WorldMap &&
                 display !== ChartDisplayType.CalendarHeatmap &&
                 dateRange?.date_from !== 'all',
@@ -500,8 +502,35 @@ export const insightVizDataLogic = kea<insightVizDataLogicType>([
             },
         ],
         validationError: [
-            (s) => [s.insightDataError],
-            (insightDataError): string | null => extractValidationError(insightDataError),
+            (s) => [
+                s.insightDataError,
+                s.display,
+                s.isTrends,
+                s.dateRange,
+                s.series,
+                s.breakdownFilter,
+                s.compareFilter,
+                s.hasFormula,
+            ],
+            (
+                insightDataError,
+                display,
+                isTrends,
+                dateRange,
+                series,
+                breakdownFilter,
+                compareFilter,
+                hasFormula
+            ): string | null =>
+                getChangeChartValidationError({
+                    display,
+                    isTrends,
+                    dateRange,
+                    series,
+                    breakdownFilter,
+                    compareFilter,
+                    hasFormula,
+                }) ?? extractValidationError(insightDataError),
         ],
 
         timezone: [(s) => [s.insightData], (insightData) => insightData?.timezone || 'UTC'],
